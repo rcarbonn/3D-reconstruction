@@ -7,14 +7,15 @@ from triangulation import triangulate, colmap_reconstruct
 QUESTIONS = {
     'q1a': eight_point,
     'q1b': seven_point,
-    'q2': ransac_plots,
+    'q2a': eight_point,
+    'q2b': seven_point,
     'q3': triangulate,
     'q4': colmap_reconstruct
 }
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-q', '--question', choices=['q1a', 'q1b', 'q2', 'q3', 'q4'], required=True)
+    parser.add_argument('-q', '--question', choices=['q1a', 'q1b', 'q2a', 'q2b', 'q3', 'q4'], required=True)
     parser.add_argument('-i', '--image', choices=['teddy', 'chair','toybus', 'toytrain'])
     parser.add_argument('-r', '--ransac', action='store_true')
     parser.add_argument('-v', '--viz', action='store_true')

@@ -7,7 +7,9 @@ import os
 
 DATA_KEYS = {
     'q1a': ['pts1', 'pts2', 'ransac_filter', 'K1', 'K2', 'image1', 'image2'],
-    'q1b': ['pts1', 'pts2', 'ransac_filter', 'K1', 'K2', 'image1', 'image2'],
+    'q1b': ['pts1', 'pts2', 'pts1_extra', 'pts2_extra', 'ransac_filter', 'K1', 'K2', 'image1', 'image2'],
+    'q2a': ['pts1', 'pts2', 'ransac_filter', 'K1', 'K2', 'image1', 'image2'],
+    'q2b': ['pts1', 'pts2', 'pts1_extra', 'pts2_extra', 'ransac_filter', 'K1', 'K2', 'image1', 'image2'],
 }
 
 
@@ -23,10 +25,12 @@ def q1_data(question, object_name, data_dir='./data/', seven_pt=False, ransac_fi
     data['ransac_filter'] = ransac_filter
     data['image1'] = Image.open(os.path.join(obj_path, f"image_1.jpg"))
     data['image2'] = Image.open(os.path.join(obj_path, f"image_2.jpg"))
-    if seven_pt or 'q1b' in question:
+    if seven_pt or 'b' in question:
         data['corr7'] = np.load(os.path.join(obj_path, f"{object_name}_7_point_corresp.npz"))
         data['pts1'] = data['corr7']['pts1']
         data['pts2'] = data['corr7']['pts2']
+        data['pts1_extra'] = data['corr_raw']['pts1']
+        data['pts2_extra'] = data['corr_raw']['pts2']
     qdata = {k:v for k,v in data.items() if k in DATA_KEYS[question]}
     if debug:
         for k,v in qdata.items():
@@ -37,6 +41,8 @@ def q1_data(question, object_name, data_dir='./data/', seven_pt=False, ransac_fi
 def load_data(args):
     if 'q1' in args.question:
         data = q1_data(args.question, args.image, ransac_filter=args.ransac, debug=args.debug)
+    if 'q2' in args.question:
+        data = q1_data('q1'+args.question[-1], args.image, ransac_filter=True, debug=args.debug)
     return  data
 
 def visualize_correspondences(image1, image2, pts1, pts2):
@@ -88,5 +94,11 @@ def epipolar_lines(image1, image2, F):
     ax1.imshow(img1)
     ax2.imshow(img2)
     _ = fig.canvas.mpl_connect('button_press_event', onclick)
+    plt.show()
+    return
+
+def inlier_plot(num_inliers):
+    plt.figure()
+    plt.plot(num_inliers)
     plt.show()
     return
