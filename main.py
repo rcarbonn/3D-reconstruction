@@ -1,7 +1,7 @@
 import argparse
 
 from utils import load_data
-from fundamental_matrix import eight_point, seven_point, ransac_plots
+from fundamental_matrix import eight_point, seven_point
 from triangulation import triangulate, colmap_reconstruct
 
 QUESTIONS = {

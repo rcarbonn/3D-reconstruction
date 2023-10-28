@@ -1,41 +1,42 @@
 import numpy as np
 from utils import epipolar_lines, visualize_correspondences, inlier_plot
 import scipy
+from scipy import optimize
 import matplotlib.pyplot as plt
 
-np.random.seed(0)
+np.random.seed(20)
 np.set_printoptions(precision=3, suppress=True)
 
 def eight_point(pts1, pts2, K1=None, K2=None, ransac_filter=False, image1=None, image2=None, viz_corr=False, viz_epi=True):
     assert pts1.shape == pts2.shape, "Corrspondences must have the same shape, (N,2)"
     assert pts1.shape[0] >= 8, "Need at least 8 correspondences to compute fundamental matrix"
 
-    # if ransac_filter:
-    #     print("Running with RANSAC...")
-    #     max_iter = 10000
-    #     max_inliers = 0
-    #     num_inliers = []
-    #     for i in range(max_iter):
-    #         choice = np.random.choice(pts1.shape[0], 8, replace=False)
-    #         pts1_8 = pts1[choice,:]
-    #         pts2_8 = pts2[choice,:]
-    #         hpts1 = np.hstack((pts1, np.ones((pts1.shape[0], 1))))
-    #         hpts2 = np.hstack((pts2, np.ones((pts2.shape[0], 1))))
-    #         F = eight_point(pts1_8, pts2_8, ransac_filter=False, viz_corr=False, viz_epi=False)
-    #         _,res = sampson_distance(F, hpts1, hpts2, residuals=True)
-    #         inlier_mask = res < 0.5
-    #         n_inliers = np.sum(inlier_mask)
-    #         if n_inliers > max_inliers:
-    #             max_inliers = n_inliers
-    #             inlier_mask_best = inlier_mask
-    #             Fbest = F
-    #         num_inliers.append(max_inliers*100/pts1.shape[0])
-    #     print("Maximum number of inliers: ", max_inliers)
-    #     inliers1 = pts1[inlier_mask_best,:]
-    #     inliers2 = pts2[inlier_mask_best,:]
-    #     Fransac = eight_point(inliers1, inliers2, ransac_filter=False, image1=image1, image2=image2, viz_corr=False, viz_epi=True)
-    #     inlier_plot(num_inliers)
-    #     return Fransac
+    if ransac_filter:
+        print("Running with RANSAC...")
+        max_iter = 10000
+        max_inliers = 0
+        num_inliers = []
+        for i in range(max_iter):
+            choice = np.random.choice(pts1.shape[0], 8, replace=True)
+            pts1_8 = pts1[choice,:]
+            pts2_8 = pts2[choice,:]
+            hpts1 = np.hstack((pts1, np.ones((pts1.shape[0], 1))))
+            hpts2 = np.hstack((pts2, np.ones((pts2.shape[0], 1))))
+            F = eight_point(pts1_8, pts2_8, ransac_filter=False, viz_corr=False, viz_epi=False)
+            _,res = sampson_distance(F, hpts1, hpts2, residuals=True)
+            inlier_mask = res < 1
+            n_inliers = np.sum(inlier_mask)
+            if n_inliers > max_inliers:
+                max_inliers = n_inliers
+                inlier_mask_best = inlier_mask
+                Fbest = F
+            num_inliers.append(max_inliers*100/pts1.shape[0])
+        print("Maximum number of inliers: ", max_inliers)
+        inliers1 = pts1[inlier_mask_best,:]
+        inliers2 = pts2[inlier_mask_best,:]
+        Fransac = eight_point(inliers1, inliers2, ransac_filter=False, image1=image1, image2=image2, viz_corr=False, viz_epi=True)
+        inlier_plot(num_inliers)
+        return Fransac
 
     pts1_, T1 = normalize_points(pts1) # normalized homogeneous coordinates
     pts2_, T2 = normalize_points(pts2) # normalized homogeneous coordinates
@@ -89,7 +90,7 @@ def seven_point(pts1, pts2, pts1_extra=None, pts2_extra=None, K1=None, K2=None, 
             Farr = seven_point(pts1_7, pts2_7, ransac_filter=False, viz_corr=False, viz_epi=False)
             for f in Farr:
                 _,res = sampson_distance(f, hpts1, hpts2, residuals=True)
-                inlier_mask = res < 1
+                inlier_mask = res < 2
                 n_inliers = np.sum(inlier_mask)
                 if n_inliers > max_inliers:
                     max_inliers = n_inliers
@@ -166,11 +167,6 @@ def seven_point(pts1, pts2, pts1_extra=None, pts2_extra=None, K1=None, K2=None, 
 
     return Farr
 
-def ransac():
-    pass
-
-def ransac_plots():
-    pass
 
 def normalize_points(pts):
     ptsh = np.hstack((pts, np.ones((pts.shape[0], 1))))
