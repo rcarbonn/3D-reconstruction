@@ -10,6 +10,7 @@ DATA_KEYS = {
     'q1b': ['pts1', 'pts2', 'pts1_extra', 'pts2_extra', 'ransac_filter', 'K1', 'K2', 'image1', 'image2'],
     'q2a': ['pts1', 'pts2', 'ransac_filter', 'K1', 'K2', 'image1', 'image2'],
     'q2b': ['pts1', 'pts2', 'pts1_extra', 'pts2_extra', 'ransac_filter', 'K1', 'K2', 'image1', 'image2'],
+    'q3' : ['pts1', 'pts2', 'P1', 'P2', 'image1', 'image2']
 }
 
 
@@ -38,11 +39,30 @@ def q1_data(question, object_name, data_dir='./data/', seven_pt=False, ransac_fi
                 print(f"{k}: {v.shape}")
     return qdata
 
+
+def q3_data(data_dir='./data/', debug=False):
+    data = {}
+    data['pts1'] = np.load(os.path.join(data_dir, 'q3', 'pts1.npy'))
+    data['pts2'] = np.load(os.path.join(data_dir, 'q3', 'pts2.npy'))
+    data['P1'] = np.load(os.path.join(data_dir, 'q3', 'P1.npy'))
+    data['P2'] = np.load(os.path.join(data_dir, 'q3', 'P2.npy'))
+    data['image1'] = Image.open(os.path.join(data_dir, 'q3', 'img1.jpg'))
+    data['image2'] = Image.open(os.path.join(data_dir, 'q3', 'img2.jpg'))
+    qdata = {k:v for k,v in data.items() if k in DATA_KEYS['q3']}
+    if debug:
+        for k,v in qdata.items():
+            if isinstance(v, np.ndarray):
+                print(f"{k}: {v.shape}")
+    return qdata
+
+
 def load_data(args):
     if 'q1' in args.question:
         data = q1_data(args.question, args.image, ransac_filter=args.ransac, debug=args.debug)
     if 'q2' in args.question:
         data = q1_data('q1'+args.question[-1], args.image, ransac_filter=True, debug=args.debug)
+    if 'q3' in args.question:
+        data = q3_data(debug=args.debug)
     return  data
 
 def visualize_correspondences(image1, image2, pts1, pts2):
@@ -68,31 +88,36 @@ def epipolar_lines(image1, image2, F):
     h,w = img2.shape[:2]
 
     def onclick(event):
-        u,v = event.xdata, event.ydata
-        # l = F@np.array([u,v,1]).reshape(3,1)
-        l = F.dot(np.array([u,v,1]))
-        l = l/l[-1]
-        # l = l/np.linalg.norm(l[:2])
-        print(l)
-        if np.linalg.norm(l[:2]) < 1e-5:
-            print("Zero line! skipping")
-            return
-        if l[1] !=0:
-            x1,y1 = 0, -l[2]/l[1]
-            x2,y2 = w-1, -(l[0]*(w-1)+l[2])/l[1]
-        else:
-            x1,y1 = -l[2]/l[0], 0
-            x2,y2 = -(l[1]*(h-1)+l[2])/l[0], h-1
-        
-        ax1.plot(u,v,'*', markersize=6, linewidth=2)
-        ax1.set_axis_off()
-        ax2.plot([x1,x2], [y1,y2], linewidth=2)
-        ax2.set_axis_off()
-        plt.draw()
+        try:
+            u,v = event.xdata, event.ydata
+            l = F.dot(np.array([u,v,1]))
+            l = l/l[-1]
+            # l = l/np.linalg.norm(l[:2])
+            if np.linalg.norm(l[:2]) < 1e-5:
+                print("Zero line! skipping")
+                return
+            if l[1] !=0:
+                x1,y1 = 0, -l[2]/l[1]
+                x2,y2 = w-1, -(l[0]*(w-1)+l[2])/l[1]
+            else:
+                x1,y1 = -l[2]/l[0], 0
+                x2,y2 = -(l[1]*(h-1)+l[2])/l[0], h-1
+            
+            # y1,y2 = np.clip([y1,y2],0,h)
+            # x1,x2 = np.clip([x1,x2],0,w)
+            ax1.plot(u,v,'o', markersize=6, linewidth=2)
+            ax2.plot([x1,x2], [y1,y2], linewidth=2)
+            plt.draw()
+        except:
+            print("Invalid point! skipping")
 
     fig, [ax1, ax2] = plt.subplots(1, 2, figsize=(10, 5))
     ax1.imshow(img1)
+    ax1.set_axis_off()
+    ax1.set_title("Selected Points")
     ax2.imshow(img2)
+    ax2.set_title("Epipolar Lines")
+    ax2.set_axis_off()
     _ = fig.canvas.mpl_connect('button_press_event', onclick)
     plt.show()
     return
@@ -100,5 +125,12 @@ def epipolar_lines(image1, image2, F):
 def inlier_plot(num_inliers):
     plt.figure()
     plt.plot(num_inliers)
+    plt.show()
+    return
+
+def plot3d(X, colors):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(X[:,0], X[:,1], X[:,2], c=colors/255.0, marker='o', s=2)
     plt.show()
     return
