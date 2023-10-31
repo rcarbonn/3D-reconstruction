@@ -2,6 +2,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D as l2d
+import cv2
 import os
 
 
@@ -10,7 +11,8 @@ DATA_KEYS = {
     'q1b': ['pts1', 'pts2', 'pts1_extra', 'pts2_extra', 'ransac_filter', 'K1', 'K2', 'image1', 'image2'],
     'q2a': ['pts1', 'pts2', 'ransac_filter', 'K1', 'K2', 'image1', 'image2'],
     'q2b': ['pts1', 'pts2', 'pts1_extra', 'pts2_extra', 'ransac_filter', 'K1', 'K2', 'image1', 'image2'],
-    'q3' : ['pts1', 'pts2', 'P1', 'P2', 'image1', 'image2']
+    'q3' : ['pts1', 'pts2', 'P1', 'P2', 'image1', 'image2'],
+    'q5' : ['pts1', 'pts2', 'ransac_filter', 'image1', 'image2']
 }
 
 
@@ -56,6 +58,47 @@ def q3_data(data_dir='./data/', debug=False):
     return qdata
 
 
+def q5_data(data_dir='./data/', ransac_filter = True, debug=False):
+    data = {}
+    data['image1'] = Image.open(os.path.join(data_dir, 'q5', 'image1.jpg'))
+    data['image2'] = Image.open(os.path.join(data_dir, 'q5', 'image2.jpg'))
+    data['ransac_filter'] = ransac_filter
+    img1g = cv2.cvtColor(np.array(data['image1']), cv2.COLOR_RGB2GRAY)
+    img2g = cv2.cvtColor(np.array(data['image2']), cv2.COLOR_RGB2GRAY)
+
+    sift = cv2.xfeatures2d.SIFT_create()
+    kp1, desc1 = sift.detectAndCompute(img1g, None)
+    kp2, desc2 = sift.detectAndCompute(img2g, None)
+
+    bf = cv2.BFMatcher()
+    matches = bf.knnMatch(desc1, desc2, k=2)
+
+    good = []
+    for m,n in matches:
+        if m.distance < 0.75*n.distance:
+            good.append(m)
+    
+    if debug:
+        img3 = cv2.drawMatches(img1g, kp1, img2g, kp2, good, None, flags=2)
+        plt.imshow(img3)
+        plt.show()
+    
+    pts1 = []
+    pts2 = []
+    for mat in good:
+        pts1.append(kp1[mat.queryIdx].pt)
+        pts2.append(kp2[mat.trainIdx].pt)
+    data['pts1'] = np.array(pts1)
+    data['pts2'] = np.array(pts2)
+    qdata = {k:data[k] for k in DATA_KEYS['q5']}
+    if debug:
+        for k,v in qdata.items():
+            if isinstance(v, np.ndarray):
+                print(f"{k}: {v.shape}")
+    return qdata
+
+
+
 def load_data(args):
     if 'q1' in args.question:
         data = q1_data(args.question, args.image, ransac_filter=args.ransac, debug=args.debug)
@@ -63,6 +106,8 @@ def load_data(args):
         data = q1_data('q1'+args.question[-1], args.image, ransac_filter=True, debug=args.debug)
     if 'q3' in args.question:
         data = q3_data(debug=args.debug)
+    if 'q5' in args.question:
+        data = q5_data(debug=args.debug)
     return  data
 
 def visualize_correspondences(image1, image2, pts1, pts2):
@@ -105,6 +150,8 @@ def epipolar_lines(image1, image2, F):
             
             # y1,y2 = np.clip([y1,y2],0,h)
             # x1,x2 = np.clip([x1,x2],0,w)
+            ax2.set_xlim(0,w)
+            ax2.set_ylim(h,0)
             ax1.plot(u,v,'o', markersize=6, linewidth=2)
             ax2.plot([x1,x2], [y1,y2], linewidth=2)
             plt.draw()
