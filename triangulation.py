@@ -1,6 +1,6 @@
 import numpy as np
 from utils import plot3d
-import scipy.optimize
+import scipy
 
 def triangulate(pts1, pts2, P1, P2, image1=None, image2=None):
     assert pts1.shape[0] == pts2.shape[0], "pts1 and pts2 should have same number of points"

@@ -98,10 +98,10 @@ def epipolar_lines(image1, image2, F):
                 return
             if l[1] !=0:
                 x1,y1 = 0, -l[2]/l[1]
-                x2,y2 = w-1, -(l[0]*(w-1)+l[2])/l[1]
+                x2,y2 = w, -(l[0]*(w)+l[2])/l[1]
             else:
                 x1,y1 = -l[2]/l[0], 0
-                x2,y2 = -(l[1]*(h-1)+l[2])/l[0], h-1
+                x2,y2 = -(l[1]*(h)+l[2])/l[0], h
             
             # y1,y2 = np.clip([y1,y2],0,h)
             # x1,x2 = np.clip([x1,x2],0,w)
@@ -131,6 +131,6 @@ def inlier_plot(num_inliers):
 def plot3d(X, colors):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(X[:,0], X[:,1], X[:,2], c=colors/255.0, marker='o', s=2)
+    ax.scatter(X[:,0], X[:,1], X[:,2], c=colors/255.0, marker='o', s=5)
     plt.show()
     return

@@ -1,7 +1,7 @@
 import numpy as np
 from utils import epipolar_lines, visualize_correspondences, inlier_plot
 import scipy
-from scipy import optimize
+# from scipy import optimize
 import matplotlib.pyplot as plt
 
 np.random.seed(20)
@@ -139,7 +139,6 @@ def seven_point(pts1, pts2, pts1_extra=None, pts2_extra=None, K1=None, K2=None, 
             # f = T2.T@f@T1
             # f = f/f[-1,-1]
             err.append(np.sum((Afull@f.reshape(-1,1))**2))
-        print(err)
         Fs = Fsols[np.argmin(err)]
         Fsols = [refineF_geometric(Fs, pts1_extra_, pts2_extra_, dist='sampson')]
         print("F matrix:")
@@ -172,7 +171,7 @@ def normalize_points(pts):
     ptsh = np.hstack((pts, np.ones((pts.shape[0], 1))))
     m = np.mean(pts, axis=0)
     pts_ = pts - m
-    s = np.sqrt(2) / np.max(np.linalg.norm(pts_, axis=1))
+    s = np.sqrt(2) / np.mean(np.linalg.norm(pts_, axis=1))
     T = np.array([[s, 0, -s*m[0]],
                   [0, s, -s*m[1]],
                   [0, 0, 1]])
